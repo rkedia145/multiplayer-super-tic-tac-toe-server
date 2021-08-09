@@ -134,6 +134,7 @@ io.on('connection', socket =>{
                 io.to(socket.id).emit('joinError')
             }
         } catch (error) {
+            console.log(error)
             io.to(socket.id).emit('joinError')
         }
     })
