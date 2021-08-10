@@ -61,6 +61,7 @@ function pieceAssignment(room){
 
 //Initialize a new board to a room
 function newGame(room){
+    console.log("Initializing new Game...")
     currentRoom = rooms.get(room)
     const superBoard = new SuperBoard()
     currentRoom.superBoard = superBoard
@@ -70,7 +71,9 @@ io.on('connection', socket =>{
     //On the client submit event (on start page) to create a new room
     socket.on('newGame', () => {
         new Promise(makeRoom).then((room) => {
+            console.log("About to emit newGameCreated...")
             socket.emit('newGameCreated', room)
+            console.log("Emitted newGameCreated...")
         })
     })
 
