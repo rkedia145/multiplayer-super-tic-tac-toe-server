@@ -33,9 +33,14 @@ const makeRoom = (resolve) =>{
 
 //Put the newly joined player into a room's player list 
 const joinRoom = (player, room) => {
-    currentRoom = rooms.get(room)
-    updatedPlayerList = currentRoom.players.push(player)
-    updatedRoom = {...currentRoom, players:updatedPlayerList}
+    try {
+        currentRoom = rooms.get(room)
+        updatedPlayerList = currentRoom.players.push(player)
+        updatedRoom = {...currentRoom, players:updatedPlayerList}
+    } catch (error) {
+        console.log(error)
+            io.to(socket.id).emit('joinError')
+    }
 }
 
 //Remove the latest player joined from a room's player list 
