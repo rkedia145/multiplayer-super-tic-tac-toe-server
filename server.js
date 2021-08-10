@@ -68,8 +68,10 @@ function newGame(room){
 }
 
 io.on('connection', socket =>{
+    console.log("Inside socket connection!")
     //On the client submit event (on start page) to create a new room
     socket.on('newGame', () => {
+        console.log("about to make promise...")
         new Promise(makeRoom).then((room) => {
             console.log("About to emit newGameCreated...")
             socket.emit('newGameCreated', room)
