@@ -19,6 +19,7 @@ class SuperBoard {
         }
         // console.log("IN CONSTRUCTOR: ", this.game)
         this.enabledBoards = [this.currBoard]
+        this.playerToPieceMap = {}
     }
 
     updateEnabledBoards(){
@@ -47,7 +48,7 @@ class SuperBoard {
     switchTurn(){
         this.turn = this.switch.get(this.turn)
         for (let i = 0; i < 9; i++){
-            this.game[i].switchTurn()
+            this.game[i].turn = this.turn
         }
     }
 

@@ -34,8 +34,10 @@ const makeRoom = (resolve) =>{
 //Put the newly joined player into a room's player list 
 const joinRoom = (player, room) => {
     try {
+        console.log("Joining Room: ", player, room)
         currentRoom = rooms.get(room)
         updatedPlayerList = currentRoom.players.push(player)
+        console.log("Updated Player List: ", updatedPlayerList)
         updatedRoom = {...currentRoom, players:updatedPlayerList}
     } catch (error) {
         console.log(error)
@@ -58,29 +60,46 @@ function getRoomPlayersNum(room){
 function pieceAssignment(room){
     const firstPiece = randPiece()
     const lastPiece = firstPiece === 'X'? 'O':'X'
-
     currentRoom = rooms.get(room)
-    currentRoom.players[0].piece = firstPiece
-    currentRoom.players[1].piece = lastPiece
+    if (currentRoom.superBoard) {
+        if (!(currentRoom.players[0].name in currentRoom.superBoard.playerToPieceMap) || !(currentRoom.players[1].name in currentRoom.superBoard.playerToPieceMap)) {
+            // different two players, so start new
+            currentRoom.players[0].piece = firstPiece
+            currentRoom.players[1].piece = lastPiece
+            currentRoom.superBoard = null
+        } else {
+            // Same two players, so resume from last time
+            currentRoom.players[0].piece = currentRoom.superBoard.playerToPieceMap[currentRoom.players[0].name]
+            currentRoom.players[1].piece = currentRoom.superBoard.playerToPieceMap[currentRoom.players[1].name]
+        }
+    } else {
+        // new game, so start new
+        currentRoom.players[0].piece = firstPiece
+        currentRoom.players[1].piece = lastPiece
+    }
 }
 
 //Initialize a new board to a room
 function newGame(room){
     console.log("Initializing new Game...")
     currentRoom = rooms.get(room)
-    const superBoard = new SuperBoard()
-    currentRoom.superBoard = superBoard
+    if (!currentRoom.superBoard) {
+        const superBoard = new SuperBoard()
+        currentRoom.superBoard = superBoard
+        currentRoom.superBoard.playerToPieceMap[currentRoom.players[0].name] = currentRoom.players[0].piece
+        currentRoom.superBoard.playerToPieceMap[currentRoom.players[1].name] = currentRoom.players[1].piece
+    }
 }
 
 io.on('connection', socket =>{
-    console.log("Inside socket connection!")
+    console.log("Inside socket connection!, ", socket.id)
     //On the client submit event (on start page) to create a new room
     socket.on('newGame', () => {
-        console.log("about to make promise...")
         new Promise(makeRoom).then((room) => {
             console.log("About to emit newGameCreated...")
             socket.emit('newGameCreated', room)
             console.log("Emitted newGameCreated...")
+            console.log("Socket ID: ", socket.id)
         })
     })
 
@@ -88,6 +107,8 @@ io.on('connection', socket =>{
     socket.on('joining', ({room}) => {
         if (rooms.has(room)){
             socket.emit('joinConfirmed')
+            console.log("Joining Room: ", room.roomId)
+            console.log("Socket ID: ", socket.id)
         }else{
             socket.emit('errorMessage', 'No room with that id found')
         }
@@ -113,11 +134,15 @@ io.on('connection', socket =>{
             //Need another player so emit the waiting event
             //to display the wait screen on the front end
             if (peopleInRoom===1){
+                console.log("1 person in room: ", socket.id)
                 io.to(room).emit('waiting')
             }
 
             //The right amount of people so we start the game
             if (peopleInRoom===2){
+
+                console.log("Two people in room: ", socket.id)
+
                 //Assign the piece to each player in the backend data structure and then
                 //emit it to each of the player so they can store it in their state
                 pieceAssignment(room)
@@ -139,6 +164,7 @@ io.on('connection', socket =>{
             //Too many people so we kick them out of the room and redirect 
             //them to the main starting page
             if (peopleInRoom===3){
+                console.log("Need to kick people out of the room!")
                 socket.leave(room)
                 kick(room)
                 io.to(socket.id).emit('joinError')
@@ -185,11 +211,13 @@ io.on('connection', socket =>{
         const currentRooms = Object.keys(socket.rooms)
         //In this game an object can only have 2 rooms max so we check for that
         if (currentRooms.length === 2){
+            console.log("Current Rooms: ", currentRooms)
             //The game room is always the second element of the list 
             const room = currentRooms[1]
             const num = getRoomPlayersNum(room)
             //If one then no one is left so we remove the room from the mapping
             if (num === 1){
+                // console.log("Would be deleting room now...")
                 rooms.delete(room)
             }
             //If 2 then there is one person left so we remove the socket leaving from the player list and
